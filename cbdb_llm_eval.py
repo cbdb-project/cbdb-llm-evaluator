@@ -93,12 +93,18 @@ for row in row_sample:
 # from BIOG_MAIN, get c_index_addr_id, c_personid, c_name_chn, then ADDR_BELONGS_DATA's c_addr_id to get c_belongs_to
 # Then using c_belongs_to to join ADDR_CODES's c_addr_id, get c_addr_chn
 c.execute('''
-    SELECT bm.c_personid, bm.c_name_chn, ac.c_name_chn
+    SELECT 
+        bm.c_personid, 
+        bm.c_name_chn AS biog_name, 
+        ac1.c_name_chn AS belongs_to_name, 
+        ac2.c_name_chn AS index_addr_name
     FROM BIOG_MAIN bm
     JOIN ADDR_BELONGS_DATA abd ON bm.c_index_addr_id = abd.c_addr_id
-    JOIN ADDR_CODES ac ON abd.c_belongs_to = ac.c_addr_id
-    WHERE ac.c_name_chn NOT LIKE '%旗' 
-        AND ac.c_name_chn LIKE '%府';
+    JOIN ADDR_CODES ac1 ON abd.c_belongs_to = ac1.c_addr_id
+    JOIN ADDR_CODES ac2 ON bm.c_index_addr_id = ac2.c_addr_id
+    WHERE ac1.c_name_chn NOT LIKE '%旗' 
+        AND ac1.c_name_chn LIKE '%府'
+        AND LENGTH(ac2.c_name_chn) > 2;
 ''')
 rows = c.fetchall()
 
@@ -106,6 +112,7 @@ row_sample = random.sample(rows, min(len(rows), 10))
 
 for row in row_sample:
     new_row = {'question': f"{row[1]}(c_personid={row[0]}的籍貫是否為{row[2]}？", 'answer': "是"}
+    new_row = {'question': f"{row[1]}(c_personid={row[0]}的籍貫是否為{row[3][1:]}？", 'answer': "否"}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
 df = df.sample(frac=1).reset_index(drop=True)
