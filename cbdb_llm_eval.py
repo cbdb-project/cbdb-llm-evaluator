@@ -105,7 +105,7 @@ rows = c.fetchall()
 row_sample = random.sample(rows, min(len(rows), 10))
 
 for row in row_sample:
-    new_row = {'question': f"{row[1]}(c_personid={row[0]})" + '的籍貫是？', 'answer': row[2]}
+    new_row = {'question': f"{row[1]}(c_personid={row[0]}的籍貫是否為{row[2]}？", 'answer': "是"}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
 df = df.sample(frac=1).reset_index(drop=True)
