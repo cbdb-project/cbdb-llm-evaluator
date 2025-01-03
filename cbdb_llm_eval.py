@@ -28,6 +28,8 @@ rows = c.fetchall()
 
 row_sample = random.sample(rows, min(len(rows), 10))
 
+person_ids = [row[0] for row in row_sample]
+
 for row in row_sample:
     new_row = {'question': f"{row[1]}(c_personid={row[0]})" + '的入仕方式是？', 'answer': '舉人'}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -47,6 +49,8 @@ WHERE ed.c_personid IN (
 rows = c.fetchall()
 
 row_sample = random.sample(rows, min(len(rows), 10))
+
+person_ids += [row[0] for row in row_sample]
 
 for row in row_sample:
     new_row = {'question': f"{row[1]}(c_personid={row[0]})" + '的入仕方式是？', 'answer': '進士'}
@@ -68,6 +72,8 @@ rows = c.fetchall()
 
 row_sample = random.sample(rows, min(len(rows), 10))
 
+person_ids += [row[0] for row in row_sample]
+
 for row in row_sample:
     new_row = {'question': f"{row[1]}(c_personid={row[0]})" + '的入仕方式是？', 'answer': '恩蔭'}
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -84,6 +90,8 @@ c.execute('''
 rows = c.fetchall()
 
 row_sample = random.sample(rows, min(len(rows), 10))
+
+person_ids += [row[0] for row in row_sample]
 
 for row in row_sample:
     new_row = {'question': f"{row[1]}(c_personid={row[0]})" + '的籍貫是？', 'answer': row[2]}
@@ -110,6 +118,10 @@ rows = c.fetchall()
 
 row_sample = random.sample(rows, min(len(rows), 10))
 
+person_ids += [row[0] for row in row_sample]
+
+person_ids = list(set(person_ids))
+
 for row in row_sample:
     new_rows = [
         {'question': f"{row[1]}(c_personid={row[0]}的籍貫是否為{row[2]}？", 'answer': "是"},
@@ -123,3 +135,11 @@ print(df.head(10))
 # write to csv and excel
 df.to_csv('cbdb_llm_eval.csv', index=False, encoding='utf-8-sig')
 df.to_excel('cbdb_llm_eval.xlsx', index=False)
+
+# write person_ids to txt
+with open('person_ids.txt', 'w') as f:
+    for person_id in person_ids:
+        f.write(f"{person_id}\n")
+
+conn.close()
+print('Done')
