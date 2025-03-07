@@ -129,6 +129,108 @@ for row in row_sample:
     ]
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 
+# Association
+
+c.execute('''
+SELECT 
+    BIOG_MAIN.c_personid, 
+    BIOG_MAIN.c_name, 
+    BIOG_MAIN.c_name_chn, 
+    BIOG_MAIN.c_dy, 
+    ALTNAME_DATA.c_alt_name, 
+    ALTNAME_DATA.c_alt_name_chn, 
+    ALTNAME_DATA.c_alt_name_type_code, 
+    ASSOC_CODES.c_assoc_code, 
+    ASSOC_CODES.c_assoc_desc, 
+    ASSOC_CODES.c_assoc_desc_chn, 
+    BIOG_MAIN_ASSOC.c_personid AS c_personid_assoc, 
+    BIOG_MAIN_ASSOC.c_name AS c_name_assoc, 
+    BIOG_MAIN_ASSOC.c_name_chn AS c_name_chn_assoc, 
+    BIOG_MAIN_ASSOC.c_dy AS c_dy_assoc, 
+    ALTNAME_DATA_ASSOC.c_alt_name_type_code AS c_alt_name_type_code_assoc, 
+    ALTNAME_DATA_ASSOC.c_alt_name AS c_alt_name_assoc, 
+    ALTNAME_DATA_ASSOC.c_alt_name_chn AS c_alt_name_chn_assoc
+FROM ASSOC_CODES
+INNER JOIN (
+    BIOG_MAIN
+    INNER JOIN (
+        ASSOC_DATA
+        INNER JOIN ALTNAME_DATA 
+        ON ASSOC_DATA.c_personid = ALTNAME_DATA.c_personid
+    ) 
+    ON BIOG_MAIN.c_personid = ASSOC_DATA.c_personid
+    INNER JOIN BIOG_MAIN AS BIOG_MAIN_ASSOC 
+    ON ASSOC_DATA.c_assoc_id = BIOG_MAIN_ASSOC.c_personid
+) 
+ON ASSOC_CODES.c_assoc_code = ASSOC_DATA.c_assoc_code
+INNER JOIN ALTNAME_DATA AS ALTNAME_DATA_ASSOC 
+ON ASSOC_DATA.c_assoc_id = ALTNAME_DATA_ASSOC.c_personid
+WHERE 
+    ALTNAME_DATA.c_alt_name_type_code = 4 
+    AND ALTNAME_DATA_ASSOC.c_alt_name_type_code = 4;
+
+''')
+rows = c.fetchall()
+
+row_sample = random.sample(rows, min(len(rows), 10))
+
+person_ids += [row[0] for row in row_sample]
+
+# Association simple question - correct answer
+
+for row in row_sample:
+    new_row = {'question': f"{row[2]}(c_personid={row[0]})的`{row[9]}`類型社會網路關係人為{row[12]}(c_personid={row[10]})？", 'answer': '是'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+# Association reverse question - wrong answer
+# Assoc code = 231 Studied with, but reverse the direction to get wrong answer
+
+rows_studied_with = [row for row in rows if row[7] == 231]
+
+row_sample = random.sample(rows_studied_with, min(len(rows_studied_with), 10))
+
+person_ids += [row[0] for row in row_sample]
+
+for row in row_sample:
+    new_row = {'question': f"{row[12]}(c_personid={row[10]})是否為{row[2]}(c_personid={row[0]})的學生？", 'answer': '否'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    new_row = {'question': f"{row[12]}(c_personid={row[10]})是否為{row[2]}(c_personid={row[0]})的老師？", 'answer': '是'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+# Association wrong perons - wrong answer
+
+# In row, get a list of person's dy = 15 save as a seperate list
+# Then get a list of person's dy = 20 save as a seperate list
+# Then using person's dy = 15 list's person id to filter the row to create correct answer, while random pick the person's dy = 20 to dy =15's answer to create the wrong answer
+
+rows_dy_15 = [row for row in rows if row[3] == 15]
+rows_dy_20 = [row for row in rows if row[3] == 20]
+
+row_sample = random.sample(rows_dy_15, min(len(rows_dy_15), 10))
+
+person_ids += [row[0] for row in row_sample]
+
+for row in row_sample:
+    row_wrong = random.choice(rows_dy_20)
+    new_row = {'question': f"{row[2]}(c_personid={row[0]}, 字{row[5]})的`{row[9]}`類型社會網路關係人為{row_wrong[12]}(c_personid={row_wrong[10]}, 字{row_wrong[16]})？", 'answer': '否'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    new_row = {'question': f"{row[2]}(c_personid={row[0]}, 字{row[5]})的`{row[9]}`類型社會網路關係人為{row[12]}(c_personid={row[10]}, 字{row[16]})？", 'answer': '是'}
+
+# Association wrong name characters - wrong answer
+# In row, get a 10 random sample that len(row[12]) > 2, save as a seperate list
+rows_long_name = [row for row in rows if len(row[12]) > 2]
+
+row_sample = random.sample(rows_long_name, min(len(rows_long_name), 10))
+
+person_ids += [row[0] for row in row_sample]
+
+for row in row_sample:
+    new_row = {'question': f"{row[2]}(c_personid={row[0]})的`{row[9]}`類型社會網路關係人為{row[12][:-1]}？", 'answer': '否'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    new_row = {'question': f"{row[2]}(c_personid={row[0]})的`{row[9]}`類型社會網路關係人為{row[12]}？", 'answer': '是'}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+# shuffle the dataframe
 df = df.sample(frac=1).reset_index(drop=True)
 print(df.head(10))
 
